@@ -3,7 +3,7 @@
  *
  */
 
-var _DEBUG = true;
+var _DEBUG = false;
 
 /**
  *
@@ -134,9 +134,7 @@ function setupEventProxy() {
       '  });',
       '}());'
     ].join('\n');
-new CustomEvent("harvest-event:timers:add", {
-  detail: { element: document.querySelector("#newly-added-timer") }
-});
+
     script.textContent = fn;
     (document.head||document.documentElement).appendChild(script);
     resolve();
