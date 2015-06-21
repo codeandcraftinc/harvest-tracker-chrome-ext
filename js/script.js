@@ -187,7 +187,7 @@ $(document).ready(function () {
       .then(setupEventProxy)
       .tap(log.bind(null, 'event proxy ready'))
       .then(function () {
-        setInterval(reinitializeTimers, 5000);
+        setInterval(reinitializeTimers, 3000);
       })['catch'](log.bind(null, 'error'));
 
   }());
