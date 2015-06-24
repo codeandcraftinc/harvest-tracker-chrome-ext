@@ -1,18 +1,19 @@
 
 /**
- *
+ * Setting this flag to `true` enables logging throughout the extension.
  */
 
-var _DEBUG = false;
+var _DEBUG = true;
 
 /**
- *
+ * Details on the current Pivotal Tracker project.
  */
 
 var _PROJECT;
 
 /**
- *
+ * Logging utility for use in this extension, allows turning debug messages
+ * on / off via the `_DEBUG` flag.
  */
 
 function log(/* type, args... */) {
@@ -77,9 +78,9 @@ function importHarvestPlatform() {
  *
  */
 
-function setupTimers() {
+function _setupTimers() {
   return new Promise(function (resolve, reject) {
-    var $stories = $('div.story:not(.release, :has(.harvest-timer))');
+    var $stories = $('div.story:not(:has(.harvest-timer))');
 
     _.forEach($stories, function (el) {
       var $el = $(el);
@@ -113,6 +114,93 @@ function setupTimers() {
 
     resolve($stories.find('.harvest-timer'));
   });
+}
+
+/**
+ *
+ */
+
+function setupTimers() {
+  return new Promise(function (resolve, reject) {
+    var $stories = $('div.story').not(':has(.harvest-timer), .unscheduled');
+    var $previews = $stories.has('header.preview');
+    var $details = $stories.has('form.story');
+
+    _.forEach($previews, setupPreviewTimer);
+    _.forEach($details, setupDetailTimer);
+
+    resolve($stories.find('.harvest-timer'));
+  });
+}
+
+/**
+ *
+ */
+
+function setupPreviewTimer(el) {
+  var $el = $(el);
+  var data = {};
+  var labels;
+  var $timer;
+
+  data.id = parseInt($el.data('id'));
+  data.name = $el.find('span.story_name').text();
+
+  labels = _.map($el.find('.label'), function (v) {
+    return $(v).text().replace(/\,\s$/, '');
+  });
+
+  if (labels.length) {
+    data.name += ' [' + _.uniq(labels).join(', ') + ']';
+  }
+
+  $timer = $el.find('.harvest-timer');
+
+  if (!$timer.length) {
+    $timer = $('<div class="harvest-timer" />')
+      .attr('data-uid', _.uniqueId('timer_'))
+      .appendTo($el.find('span.state'))
+      .attr('data-project', JSON.stringify(_PROJECT))
+      .attr('data-item', JSON.stringify(data));
+  }
+}
+
+/**
+ *
+ */
+
+function setupDetailTimer(el) {
+  var $el = $(el);
+  var data = {};
+  var labels;
+  var $timer;
+
+  data.id = parseInt($el.data('id'));
+  data.name = $el.find('[name="story[name]"]').val();
+
+  labels = _.map($el.find('ul.selected.labels .label a:first'), function (v) {
+    return $(v).text().replace(/\,\s$/, '');
+  });
+
+  if (labels.length) {
+    data.name += ' [' + _.uniq(labels).join(', ').trim() + ']';
+  }
+
+  $timer = $el.find('.harvest-timer');
+
+  if (!$timer.length) {
+    $timer = $('<div class="harvest-timer" />')
+      .attr('data-uid', _.uniqueId('timer_'))
+      .appendTo($el.find('span.state'));
+  }
+
+  if (!$timer.length) {
+    $timer = $('<div class="harvest-timer" />')
+      .attr('data-uid', _.uniqueId('timer_'))
+      .insertAfter($el.find('nav.edit'))
+      .attr('data-project', JSON.stringify(_PROJECT))
+      .attr('data-item', JSON.stringify(data));
+  }
 }
 
 /**
@@ -170,7 +258,7 @@ function reinitializeTimers() {
  *
  */
 
-$(document).ready(function () {
+$(window).load(function () {
   (function waitForStoriesThenInitialize(){
     var $stories = $('div.story');
 
@@ -186,7 +274,7 @@ $(document).ready(function () {
       .tap(log.bind(null, 'platform imported'))
       .then(setupEventProxy)
       .tap(log.bind(null, 'event proxy ready'))
-      .then(function () {
+      .then(function reinitializationLoop() {
         setInterval(reinitializeTimers, 3000);
       })['catch'](log.bind(null, 'error'));
 
