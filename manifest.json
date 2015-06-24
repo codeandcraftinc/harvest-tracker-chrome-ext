@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Harvest / PivotalTracker",
   "description": "A Chrome extension for tracking Harvest time via PivotalTracker stories.",
-  "version": "0.1",
+  "version": "0.1.1",
   "content_scripts": [
     {
       "matches": ["https://www.pivotaltracker.com/n/projects/*"],

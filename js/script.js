@@ -1,15 +1,27 @@
 
 /**
+ *
+ */
+
+var _VERSION = '0.1.1';
+
+/**
  * Setting this flag to `true` enables logging throughout the extension.
  */
 
-var _DEBUG = true;
+var _DEBUG = false;
 
 /**
  * Details on the current Pivotal Tracker project.
  */
 
 var _PROJECT;
+
+/**
+ *
+ */
+
+var _TRACKER_PERMALINK = 'https://www.pivotaltracker.com/story/show/%ITEM_ID%';
 
 /**
  * Logging utility for use in this extension, allows turning debug messages
@@ -47,8 +59,7 @@ function configure() {
     script.async = true;
     script.innerHTML = 'window._harvestPlatformConfig = ' + JSON.stringify({
       applicationName: 'PivotalTracker',
-      permalink: 'https://www.pivotaltracker.com/story/show/%ITEM_ID%',
-      skipJquery: true
+      permalink: _TRACKER_PERMALINK
     });
 
     entry.parentNode.insertBefore(script, entry);
@@ -78,48 +89,6 @@ function importHarvestPlatform() {
  *
  */
 
-function _setupTimers() {
-  return new Promise(function (resolve, reject) {
-    var $stories = $('div.story:not(:has(.harvest-timer))');
-
-    _.forEach($stories, function (el) {
-      var $el = $(el);
-      var data = {};
-      var labels;
-      var $timer;
-      var evt;
-
-      data.id = parseInt($el.data('id'));
-      data.name = $el.find('span.story_name').text();
-
-      labels = _.map($el.find('.label'), function (v) {
-        return $(v).text().replace(/\,\s$/, '');
-      });
-
-      if (labels.length) {
-        data.name += ' [' + _.uniq(labels).join(', ') + ']';
-      }
-
-      $timer = $el.find('.harvest-timer');
-
-      if (!$timer.length) {
-        $timer = $('<div class="harvest-timer" />')
-          .attr('data-uid', _.uniqueId('timer_'))
-          .appendTo($el.find('span.state'));
-      }
-
-      $timer.attr('data-project', JSON.stringify(_PROJECT));
-      $timer.attr('data-item', JSON.stringify(data));
-    });
-
-    resolve($stories.find('.harvest-timer'));
-  });
-}
-
-/**
- *
- */
-
 function setupTimers() {
   return new Promise(function (resolve, reject) {
     var $stories = $('div.story').not(':has(.harvest-timer), .unscheduled');
@@ -140,6 +109,7 @@ function setupTimers() {
 function setupPreviewTimer(el) {
   var $el = $(el);
   var data = {};
+  var href;
   var labels;
   var $timer;
 
@@ -153,6 +123,8 @@ function setupPreviewTimer(el) {
   if (labels.length) {
     data.name += ' [' + _.uniq(labels).join(', ') + ']';
   }
+
+  data.name += "\n" + _TRACKER_PERMALINK.replace('%ITEM_ID%', data.id);
 
   $timer = $el.find('.harvest-timer');
 
@@ -172,19 +144,22 @@ function setupPreviewTimer(el) {
 function setupDetailTimer(el) {
   var $el = $(el);
   var data = {};
+  var href;
   var labels;
   var $timer;
 
   data.id = parseInt($el.data('id'));
   data.name = $el.find('[name="story[name]"]').val();
 
-  labels = _.map($el.find('ul.selected.labels .label a:first'), function (v) {
+  labels = _.map($el.find('ul.selected.labels a.label'), function (v) {
     return $(v).text().replace(/\,\s$/, '');
   });
 
   if (labels.length) {
     data.name += ' [' + _.uniq(labels).join(', ').trim() + ']';
   }
+
+  data.name += "\n" + _TRACKER_PERMALINK.replace('%ITEM_ID%', data.id);
 
   $timer = $el.find('.harvest-timer');
 
